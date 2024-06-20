@@ -2072,3 +2072,37 @@ int LIBWDI_API wdi_get_wdf_version(void)
 	return -1;
 #endif
 }
+
+void CreateConsole(void) {
+	FILE* fp;
+	AllocConsole();
+	freopen_s(&fp, "CONOUT$", "w", stdout);
+	freopen_s(&fp, "CONOUT$", "w", stderr);
+}
+
+int LIBWDI_API DriverReplace(int vid, int pid)
+{
+	struct wdi_device_info* device, * list;
+	struct wdi_options_prepare_driver prepare = { 0 };;
+	struct wdi_options_install_driver oid = { 0 };
+	struct wdi_options_create_list options;
+	options.list_all = TRUE;
+
+	if (wdi_create_list(&list, &options) == WDI_SUCCESS) {
+		for (device = list; device != NULL; device = device->next) {
+			printf_s("Installing driver for USB device: \"%s\" (%04X:%04X)\n",
+				device->desc, device->vid, device->pid);
+
+			if (device->vid == vid && device->pid == pid)
+			{
+				printf_s("Creating...\n");
+				if (wdi_prepare_driver(device, "./TEST/", "winusb_c.inf", &prepare) == WDI_SUCCESS) {
+					printf_s("Installing...\n");
+					int t = wdi_install_driver(device, "./TEST/", "winusb_c.inf", &oid);
+					printf("%d\n", t);
+				}
+			}
+		}
+		wdi_destroy_list(list);
+	}
+}
